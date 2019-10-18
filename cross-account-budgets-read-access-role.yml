@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  IAM Role that allows AWS accounts to view AWS Budget
+  information stored in another AWS account.  The intent
+  is to facilitate AWS accounts querying for AWS Budget
+  information from an AWS Orgnanizations master account.
+  In this scenario, this template would be deployed in the
+  master account and referenced by ARN from the other AWS accounts.
+  The other AWS accounts' account ARNs are supplied to this
+  template as a parameter to enable access to this Role.
+Parameters:
+  GranteeAWSAccountARNs:
+    Type: CommaDelimitedList
+    Description: >
+      Comma-delimited list of AWS account ARNs being given access 
+      to view AWS Budgets in the account that this template is being applied in.
+      e.g. arn:aws:iam::123456789:root,arn:aws:iam::987654321:root
+Resources:
+  AERNonProdToVeriskParentBillingViewBudgetsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: cross-account-budgets-read-access
+      Path: '/'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+            - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              AWS: !Ref GranteeAWSAccountARNs
+      Policies:
+      - PolicyName: view-budgets
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'budgets:ViewBudget'
+            Resource: '*'
+Outputs:
+  CrossAccountBudgetsReadAccessRoleArn:
+    Description: >
+      ARN for cross-account-budgets-read-access IAM Role.
+      Required as input parameter into project-tag-matches-budget.yml template
+      if using AWS Organizations option within this solution.
+    Value: !GetAtt AERNonProdToVeriskParentBillingViewBudgetsRole.Arn
+    Export:
+      Name: CrossAccountBudgetsReadAccessRoleArn
